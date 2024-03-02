@@ -1,3 +1,4 @@
+use chrono::Utc;
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
@@ -70,17 +71,15 @@ async fn main() {
 
             let calendar = calendar::Calendar::new(&config).await.unwrap();
 
-            println!(
-                "{}",
-                match calendar.get_next_event().await {
-                    Ok(Some(event)) => {
-                        event.format_status_line()
-                    }
-                    _ => {
-                        "".to_string()
-                    }
+            if let Ok(Some(event)) = calendar.get_next_event().await {
+                if config.max_time_until_event_seconds.is_none()
+                    || Utc::now()
+                        + chrono::TimeDelta::seconds(config.max_time_until_event_seconds.unwrap())
+                        > event.start_time
+                {
+                    print!("{}", event.format_status_line());
                 }
-            );
+            }
         }
     }
 }

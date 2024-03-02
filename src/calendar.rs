@@ -159,10 +159,10 @@ impl EventsCache {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Event {
-    title: String,
-    location: Option<String>,
-    start_time: DateTime<Utc>,
-    end_time: DateTime<Utc>,
+    pub title: String,
+    pub location: Option<String>,
+    pub start_time: DateTime<Utc>,
+    pub end_time: DateTime<Utc>,
 }
 
 impl Event {
