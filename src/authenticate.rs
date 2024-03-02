@@ -2,9 +2,8 @@ use eyre::{eyre, Result};
 use google_calendar::Client;
 use url::Url;
 use serde::{Serialize, Deserialize};
-use std::path::Path;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Creds {
     pub client_id: String,
     pub client_secret: String,
@@ -28,6 +27,9 @@ impl Creds {
         loop {
             // Read input from user
             let mut redirect_url = String::new();
+
+            println!("Please enter the redirect URL: ");
+            print!("> ");
 
             while let Err(_) = std::io::stdin().read_line(&mut redirect_url) {
                 println!("Please enter a valid URL");
