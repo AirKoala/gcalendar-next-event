@@ -40,6 +40,9 @@ enum Commands {
         #[arg(long, short = 'C')]
         nocache: bool,
     },
+
+    /// List the user's calendars.
+    ListCalendars,
 }
 
 #[tokio::main]
@@ -80,6 +83,15 @@ async fn main() {
                     print!("{}", event.format_status_line());
                 }
             }
+        }
+        Commands::ListCalendars => {
+            calendar::Calendar::new(&config)
+                .await
+                .expect("Failed to get calendars.")
+                .get_calendars_table()
+                .await
+                .expect("Failed to generate table.")
+                .printstd();
         }
     }
 }

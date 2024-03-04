@@ -1,11 +1,12 @@
-use crate::config::Config;
+use crate::config::{Config, SelectedCalendars};
 use chrono::{prelude::*, TimeDelta};
 use eyre::{eyre, Result};
 use google_calendar::{
-    types::{MinAccessRole, OrderBy},
+    types::{CalendarListEntry, MinAccessRole, OrderBy},
     Client, StatusCode,
 };
 use serde::{Deserialize, Serialize};
+use prettytable::{row, Table};
 
 pub struct Calendar<'a> {
     client: Client,
@@ -48,6 +49,53 @@ impl<'a> Calendar<'a> {
         Ok(self.get_events().await?.first().cloned())
     }
 
+    /// Get calendars as a formatted table string.
+    pub async fn get_calendars_table(&self) -> Result<Table> {
+        let calendars = self.fetch_calendars(&self.config.selected_calendars).await?;
+
+        let mut table = Table::new();
+        table.add_row(row!["ID", "Summary", "Description"]);
+
+        for cal in calendars {
+            table.add_row(row![
+                cal.id,
+                cal.summary,
+                cal.description,
+            ]);
+        }
+
+        Ok(table)
+    }
+
+    async fn fetch_calendars(
+        &self,
+        selected_calendars: &SelectedCalendars,
+    ) -> Result<Vec<CalendarListEntry>> {
+        let calendars = self
+            .client
+            .calendar_list()
+            .list_all(MinAccessRole::Reader, false, false)
+            .await?;
+
+        if calendars.status != StatusCode::OK {
+            return Err(eyre!("Failed to get calendar list"));
+        }
+
+        Ok(match selected_calendars {
+            SelectedCalendars::All => calendars.body,
+            SelectedCalendars::Whitelist(ref whitelist) => calendars
+                .body
+                .into_iter()
+                .filter(|cal| whitelist.contains(&cal.id))
+                .collect(),
+            SelectedCalendars::Blacklist(ref blacklist) => calendars
+                .body
+                .into_iter()
+                .filter(|cal| !blacklist.contains(&cal.id))
+                .collect(),
+        })
+    }
+
     async fn get_events(&self) -> Result<Vec<Event>> {
         let mut events_cache = if self.config.nocache {
             self.events_cache_from_api().await?
@@ -72,17 +120,7 @@ impl<'a> Calendar<'a> {
     }
 
     async fn fetch_events_from_api(&self) -> Result<Vec<Event>> {
-        let calendars = self
-            .client
-            .calendar_list()
-            .list_all(MinAccessRole::Reader, false, false)
-            .await?;
-
-        if calendars.status != StatusCode::OK {
-            return Err(eyre!("Failed to get calendar list"));
-        }
-
-        let calendars = calendars.body;
+        let calendars = self.fetch_calendars(&self.config.selected_calendars).await?;
 
         let mut events = Vec::new();
 

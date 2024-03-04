@@ -49,7 +49,7 @@ impl Config {
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
-enum SelectedCalendars {
+pub enum SelectedCalendars {
     #[default]
     All,
     Whitelist(Vec<String>),
