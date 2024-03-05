@@ -5,8 +5,8 @@ use google_calendar::{
     types::{CalendarListEntry, MinAccessRole, OrderBy},
     Client, StatusCode,
 };
-use serde::{Deserialize, Serialize};
 use prettytable::{row, Table};
+use serde::{Deserialize, Serialize};
 
 pub struct Calendar<'a> {
     client: Client,
@@ -46,22 +46,79 @@ impl<'a> Calendar<'a> {
     }
 
     pub async fn get_next_event(self) -> Result<Option<Event>> {
-        Ok(self.get_events().await?.first().cloned())
+        let events = self.get_events().await?;
+        let threshold = self
+            .config
+            .max_time_until_event_seconds
+            .map(|s| TimeDelta::seconds(s));
+
+        Ok(
+            match Self::earliest_upcoming_event_within(&events, threshold) {
+                None => Self::latest_running_event(&events),
+                e => e,
+            }
+            .map(|e| e.clone()),
+        )
+    }
+
+    fn latest_running_event<'b>(events: &'b [Event]) -> Option<&'b Event> {
+        let mut latest_running_event: Option<&Event> = None;
+
+        for event in events {
+            if event.start_time <= Utc::now() && event.end_time >= Utc::now() {
+                if let Some(ref lre) = latest_running_event {
+                    if event.start_time > lre.start_time {
+                        latest_running_event = Some(&event);
+                    }
+                } else {
+                    latest_running_event = Some(&event);
+                }
+            }
+        }
+
+        latest_running_event
+    }
+
+    fn earliest_upcoming_event_within<'b>(
+        events: &'b [Event],
+        threshold: Option<TimeDelta>,
+    ) -> Option<&'b Event> {
+        if let None = threshold {
+            return Self::earliest_upcoming_event(events);
+        }
+
+        match Self::earliest_upcoming_event(events) {
+            None => None,
+            Some(event) => {
+                if event.start_time - Utc::now() < threshold.unwrap() {
+                    Some(event)
+                } else {
+                    None
+                }
+            }
+        }
+    }
+
+    fn earliest_upcoming_event<'b>(events: &'b [Event]) -> Option<&'b Event> {
+        for event in events {
+            if event.start_time > Utc::now() {
+                return Some(&event);
+            }
+        }
+        None
     }
 
     /// Get calendars as a formatted table string.
     pub async fn get_calendars_table(&self) -> Result<Table> {
-        let calendars = self.fetch_calendars(&self.config.selected_calendars).await?;
+        let calendars = self
+            .fetch_calendars(&self.config.selected_calendars)
+            .await?;
 
         let mut table = Table::new();
         table.add_row(row!["ID", "Summary", "Description"]);
 
         for cal in calendars {
-            table.add_row(row![
-                cal.id,
-                cal.summary,
-                cal.description,
-            ]);
+            table.add_row(row![cal.id, cal.summary, cal.description,]);
         }
 
         Ok(table)
@@ -120,7 +177,9 @@ impl<'a> Calendar<'a> {
     }
 
     async fn fetch_events_from_api(&self) -> Result<Vec<Event>> {
-        let calendars = self.fetch_calendars(&self.config.selected_calendars).await?;
+        let calendars = self
+            .fetch_calendars(&self.config.selected_calendars)
+            .await?;
 
         let mut events = Vec::new();
 
