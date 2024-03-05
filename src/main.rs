@@ -80,9 +80,10 @@ async fn main() {
                         + chrono::TimeDelta::seconds(config.max_time_until_event_seconds.unwrap())
                         > event.start_time
                 {
-                    println!("{}", event.format_status_line());
+                    print!("{}", event.format_status_line());
                 }
             }
+            println!();
         }
         Commands::ListCalendars => {
             calendar::Calendar::new(&config)
