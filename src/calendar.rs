@@ -111,14 +111,32 @@ impl<'a> Calendar<'a> {
     /// Get calendars as a formatted table string.
     pub async fn get_calendars_table(&self) -> Result<Table> {
         let calendars = self
-            .fetch_calendars(&self.config.selected_calendars)
+            .fetch_calendars(&SelectedCalendars::All)
             .await?;
 
         let mut table = Table::new();
-        table.add_row(row!["ID", "Summary", "Description"]);
+        table.add_row(row!["ID", "Summary", "Description", "Selected"]);
 
         for cal in calendars {
-            table.add_row(row![cal.id, cal.summary, cal.description,]);
+            let selected = match &self.config.selected_calendars {
+                SelectedCalendars::All => "Yes",
+                SelectedCalendars::Whitelist(whitelist) => {
+                    if whitelist.contains(&cal.id) {
+                        "Yes"
+                    } else {
+                        "No"
+                    }
+                }
+                SelectedCalendars::Blacklist(blacklist) => {
+                    if blacklist.contains(&cal.id) {
+                        "No"
+                    } else {
+                        "Yes"
+                    }
+                }
+            };
+
+            table.add_row(row![cal.id, cal.summary, cal.description, selected]);
         }
 
         Ok(table)
