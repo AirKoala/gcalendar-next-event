@@ -23,11 +23,11 @@ enum Commands {
     Authenticate {
         /// The client ID for the Google Cloud project.
         #[arg(long)]
-        client_id: String,
+        client_id: Option<String>,
 
         /// The client secret for the Google Cloud project.
         #[arg(long)]
-        client_secret: String,
+        client_secret: Option<String>,
 
         /// Don't save the credentials to the config file.
         #[arg(long, short = 'S')]
@@ -60,9 +60,13 @@ async fn main() {
             client_secret,
             nosave,
         } => {
-            let creds = authenticate::Creds::authenticate(&client_id, &client_secret)
-                .await
-                .unwrap();
+            let creds = authenticate::Creds::authenticate(
+                &client_id.unwrap_or(config.creds.client_id),
+                &client_secret.unwrap_or(config.creds.client_secret),
+            )
+            .await
+            .unwrap();
+
             config.creds = creds;
 
             if !nosave {
