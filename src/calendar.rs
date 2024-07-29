@@ -110,9 +110,7 @@ impl<'a> Calendar<'a> {
 
     /// Get calendars as a formatted table string.
     pub async fn get_calendars_table(&self) -> Result<Table> {
-        let calendars = self
-            .fetch_calendars(&SelectedCalendars::All)
-            .await?;
+        let calendars = self.fetch_calendars(&SelectedCalendars::All).await?;
 
         let mut table = Table::new();
         table.add_row(row!["ID", "Summary", "Description", "Selected"]);
@@ -222,6 +220,9 @@ impl<'a> Calendar<'a> {
                 }
             }
         }
+
+        // Sort events by start time in ascending order
+        events.sort_by(|a, b| a.start_time.cmp(&b.start_time));
 
         Ok(events)
     }
