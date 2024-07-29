@@ -24,7 +24,7 @@ impl Config {
         let default_config_path = Self::get_default_config_path()?;
         let config_path = config_path.unwrap_or(&default_config_path);
 
-        std::fs::write(config_path, serde_json::to_string_pretty(self)?)?;
+        std::fs::write(config_path, toml::to_string_pretty(self)?)?;
 
         Ok(())
     }
@@ -34,7 +34,7 @@ impl Config {
         let config_path = config_path.unwrap_or(&default_config_path);
         let config = std::fs::read_to_string(config_path)?;
 
-        Ok(serde_json::from_str(&config)?)
+        Ok(toml::from_str(&config)?)
     }
 
     fn get_default_config_path() -> Result<PathBuf> {
@@ -44,7 +44,7 @@ impl Config {
             std::fs::create_dir_all(xdg_dirs.get_config_home())?;
         }
 
-        Ok(xdg_dirs.get_config_home().join("config.json"))
+        Ok(xdg_dirs.get_config_home().join("config.toml"))
     }
 }
 
