@@ -20,6 +20,7 @@ struct Args {
 #[derive(Subcommand, Debug)]
 enum Commands {
     /// Authenticate with google cloud.
+    #[command(visible_alias("auth"))]
     Authenticate {
         /// The client ID for the Google Cloud project.
         #[arg(long)]
@@ -35,6 +36,7 @@ enum Commands {
     },
 
     /// Get the next event from the user's calendar.
+    #[command(visible_alias("event"))]
     GetNextEvent {
         /// Don't use cached data.
         #[arg(long, short = 'C')]
@@ -42,6 +44,7 @@ enum Commands {
     },
 
     /// List the user's calendars.
+    #[command(visible_alias("cal"))]
     ListCalendars,
 }
 
